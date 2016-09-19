@@ -1,0 +1,116 @@
+---
+# playbook to create a CentOS VM based on a VMware template
+#
+# required vars to pass using --extra-vars:
+# - vcenter                    vCenter hostname or IP
+# - login                      vCenter login in user@domain format, eg: rkirk@ccmp
+# - password                   AD password
+# - newvmhostname              either the new VM single hostname or ENV name
+#
+# optional vars:
+# - mbram                      VM memory. if left unspecified, defaults to 2048
+# - numcpus                    VM vCPUs. If left unspecified, defaults to 2 
+# - elver                      CentOS major release version, defaults to 7
+#
+# example:
+# newvmhostname=la4dvutil01
+# export ANSIBLE_HOST_KEY_CHECKING=False; ansible-playbook createvm.yml --extra-vars="vcenter=10.24.88.16 login=rkirk@ccmp' password="$pw" newvmhostname=$newvmhostname folder=SharedVMs mbram=1024 numcpus=1" --ask-pass -i "${newvmhostname},"
+
+- name: clone a new vm from a vmware template
+  hosts: localhost 
+  gather_facts: no
+
+# Set default values in case we don't pass them
+  vars:
+    - mbram: 2048
+    - numcpus: 2
+    - elver: 7
+
+  tasks:
+
+    - name: clone vm
+      local_action:
+        module: vsphere
+        host: "{{ vcenter }}"
+        login: "{{ login }}"
+        password: "{{ password }}"
+        checkssl: no
+        guest:
+          name: "{{ newvmhostname }}"
+          state: present
+          folder: "{{ folder }}"
+          clone_from: "centos{{ elver }}"
+        spec:
+          type: VirtualMachineCloneSpec
+          value:
+            config:
+              VirtualMachineConfigSpec:
+                name: "{{ newvmhostname }}" 
+                memoryMB: "{{ mbram }}" 
+                numCPUs: "{{ numcpus }}"
+            customization:
+              CustomizationSpec:
+                globalIPSettings:
+                  CustomizationGlobalIPSettings:
+                    dnsServerList: "10.24.92.0"
+                    dnsSuffixList: "vm.cheetahmail.com"
+                identity:
+                  CustomizationLinuxPrep:
+                    domain: "vm.cheetahmail.com"
+                    hostName:
+                      CustomizationFixedName: 
+                        name: "{{ newvmhostname }}"
+                nicSettingMap:
+                  - CustomizationAdapterMapping:
+                      adapter:
+                        CustomizationIPSettings:
+                          ip:
+                            CustomizationDhcpIpGenerator: {}
+            location:
+              VirtualMachineRelocateSpec:
+                pool:
+                  ManagedObjectReference:
+                    type: ResourcePool
+                    name: Resources
+            template: False 
+
+    - name: power on vm
+      local_action:
+        module: vsphere
+        host: "{{ vcenter }}"
+        login: "{{ login }}"
+        password: "{{ password }}"
+        guest:
+          name: "{{ newvmhostname }}"
+          state: running
+
+    - name: wait for vm to come up and be accessible
+      local_action:
+        module: wait_for
+#       host: "{{ newvmhostname }}.vm.cheetahmail.com"
+        host: 10.24.92.26
+        state: started
+        port: 22
+        timeout: 300
+
+- name: bootstrap basic config to prepare for puppet
+# hosts: "{{ newvmhostname }}".vm.cheetahmail.com
+  hosts: 10.24.92.26
+  remote_user: root
+  vars_files:                                                                     
+    - createvm_vars.yml
+  tasks:
+
+# this shouldn't be necessary, but just in case the template is behind our current patching baseline
+    - name: update all packages
+      yum:
+        name: "*"
+        state: latest
+
+# our template is an unmodified minimal install. this should be moved to puppet, but we need to install the puppet rpm using this method anyway
+    - name: install base set of packages 
+      yum:
+        state: present
+        name: "{{ item }}"
+      with_items:
+        - "{{ packages }}"

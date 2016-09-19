@@ -1,0 +1,40 @@
+---
+# vars for createvm.yml
+
+- packages:
+  - curl-devel
+  - bzip2
+  - dmidecode
+  - dos2unix
+  - iptraf
+  - iotop
+  - telnet
+  - less
+  - lsscsi
+  - lynx
+  - mailx
+  - man
+  - mtr
+  - parted
+  - rdist
+  - screen
+  - strace
+  - ltrace
+  - tcptraceroute
+  - yum-plugin-priorities
+  - git
+  - unzip
+  - zip
+  - bc
+  - net-tools
+  - sysstat
+  - bind-utils 
+  - vim
+  - nc
+  - rsync
+  - lsof
+  - traceroute
+  - tcpdump
+  - wget
+  - mlocate
+  - tree
