@@ -1,31 +1,26 @@
 ---
-# playbook to create a CentOS VM based on a VMware template
+# playbook to create a CentOS VM based on a VMware golden image template
 #
 # required vars to pass using --extra-vars:
-# - vcenter                    vCenter hostname or IP
-# - login                      vCenter login in user@domain format, eg: rkirk@ccmp
-# - password                   AD password
-# - newvmhostname              either the new VM single hostname or ENV name
+# - vcenter                vCenter hostname or IP
+# - login                  vCenter login in user@domain format, eg: user@domain
+# - password               vCenter 
+# - newvmhostname          either the new VM single hostname or ENV name
+# - folder                 vSphere folder to place the VM in 
 #
 # optional vars:
-# - mbram                      VM memory. if left unspecified, defaults to 2048
-# - numcpus                    VM vCPUs. If left unspecified, defaults to 2 
-# - elver                      CentOS major release version, defaults to 7
+# - mbram                  VM memory. if left unspecified, defaults to 2048
+# - numcpus                VM vCPUs. If left unspecified, defaults to 2 
+# - elver                  CentOS major release version, defaults to 7
 #
 # example:
-# newvmhostname=la4dvutil01
-# export ANSIBLE_HOST_KEY_CHECKING=False; ansible-playbook createvm.yml --extra-vars="vcenter=10.24.88.16 login=rkirk@ccmp' password="$pw" newvmhostname=$newvmhostname folder=SharedVMs mbram=1024 numcpus=1" --ask-pass -i "${newvmhostname},"
+# ansible-playbook createvm.yml --extra-vars="vcenter=${vcenter} login=${user} password='${password}' newvmhostname='${newvmhostname}' folder=SharedVMs mbram=4096 numcpus=2" --ask-pass -i "${newvmhostname},"
 
 - name: clone a new vm from a vmware template
   hosts: localhost 
   gather_facts: no
-
-# Set default values in case we don't pass them
-  vars:
-    - mbram: 2048
-    - numcpus: 2
-    - elver: 7
-
+  vars_files:
+    - createvm_vars.yml
   tasks:
 
     - name: clone vm
@@ -34,7 +29,7 @@
         host: "{{ vcenter }}"
         login: "{{ login }}"
         password: "{{ password }}"
-        checkssl: no
+        checkssl: no 
         guest:
           name: "{{ newvmhostname }}"
           state: present
@@ -52,11 +47,11 @@
               CustomizationSpec:
                 globalIPSettings:
                   CustomizationGlobalIPSettings:
-                    dnsServerList: "10.24.92.0"
-                    dnsSuffixList: "vm.cheetahmail.com"
+                    dnsServerList: "{{ nameserver }}" 
+                    dnsSuffixList: "{{ domain }}" 
                 identity:
                   CustomizationLinuxPrep:
-                    domain: "vm.cheetahmail.com"
+                    domain: "{{ domain }}"
                     hostName:
                       CustomizationFixedName: 
                         name: "{{ newvmhostname }}"
@@ -87,27 +82,26 @@
     - name: wait for vm to come up and be accessible
       local_action:
         module: wait_for
-#       host: "{{ newvmhostname }}.vm.cheetahmail.com"
-        host: 10.24.92.26
+        host: "{{ newvmhostname }}.{{ domain }}"
         state: started
         port: 22
         timeout: 300
 
 - name: bootstrap basic config to prepare for puppet
-# hosts: "{{ newvmhostname }}".vm.cheetahmail.com
-  hosts: 10.24.92.26
+  hosts: "{{ newvmhostname }}.{{ domain }}"
   remote_user: root
   vars_files:                                                                     
     - createvm_vars.yml
   tasks:
 
-# this shouldn't be necessary, but just in case the template is behind our current patching baseline
+    # this shouldn't be necessary, but just in case the is behind our current patching baseline
     - name: update all packages
       yum:
         name: "*"
         state: latest
 
-# our template is an unmodified minimal install. this should be moved to puppet, but we need to install the puppet rpm using this method anyway
+    # our image is an unmodified minimal install. this should be moved to puppet,but we need 
+    # to install the puppet rpm using this method anyway
     - name: install base set of packages 
       yum:
         state: present

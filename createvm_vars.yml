@@ -1,40 +1,47 @@
 ---
 # vars for createvm.yml
 
+- mbram: 2048
+- numcpus: 2
+- elver: 7
+- domain: vm.cheetahmail.com
+- nameserver: 10.24.92.0
+
 - packages:
-  - curl-devel
+  - bc
+  - bind-utils 
   - bzip2
+  - curl-devel
   - dmidecode
   - dos2unix
+  - git
   - iptraf
   - iotop
-  - telnet
   - less
   - lsscsi
+  - lsof
+  - ltrace
   - lynx
   - mailx
   - man
+  - mlocate
   - mtr
+  - net-tools
+  - nc
   - parted
   - rdist
+  - rsync
   - screen
   - strace
-  - ltrace
-  - tcptraceroute
-  - yum-plugin-priorities
-  - git
-  - unzip
-  - zip
-  - bc
-  - net-tools
   - sysstat
-  - bind-utils 
-  - vim
-  - nc
-  - rsync
-  - lsof
-  - traceroute
   - tcpdump
-  - wget
-  - mlocate
+  - tcptraceroute
+  - telnet
+  - tmux
+  - traceroute
   - tree
+  - unzip
+  - vim
+  - wget
+  - yum-plugin-priorities
+  - zip
