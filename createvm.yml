@@ -1,20 +1,5 @@
 ---
-# playbook to create a CentOS VM based on a VMware golden image template
-#
-# required vars to pass using --extra-vars:
-# - vcenter                vCenter hostname or IP
-# - login                  vCenter login in user@domain format, eg: user@domain
-# - password               vCenter 
-# - newvmhostname          either the new VM single hostname or ENV name
-# - folder                 vSphere folder to place the VM in 
-#
-# optional vars:
-# - mbram                  VM memory. if left unspecified, defaults to 2048
-# - numcpus                VM vCPUs. If left unspecified, defaults to 2 
-# - elver                  CentOS major release version, defaults to 7
-#
-# example:
-# ansible-playbook createvm.yml --extra-vars="vcenter=${vcenter} login=${user} password='${password}' newvmhostname='${newvmhostname}' folder=SharedVMs mbram=4096 numcpus=2" --ask-pass -i "${newvmhostname},"
+# playbook to create a VM based on a VMware template
 
 - name: clone a new vm from a vmware template
   hosts: localhost 
